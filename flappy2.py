@@ -13,31 +13,43 @@ def jump():
     ev = pygame.event.Event(pygame.USEREVENT)
     pygame.event.post(ev)
 
+noCrash = True
+
 pinY = 16
-pinA = 6
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(pinY,GPIO.OUT, initial=GPIO.LOW)
-GPIO.setup(pinA,GPIO.IN)
 
-threshold = 0.0005
-under_pressure = False
+class Pad:
+    def __init__(self, pin, threshold=0.0005):
+        self.pin = pin
+        self.threshold = threshold
+        self.under_pressure = False
+        GPIO.setup(pin,GPIO.IN)
 
-def readPad():
-    global under_pressure
-    GPIO.setup(pinY, GPIO.IN)
-    GPIO.setup(pinA, GPIO.OUT, initial=GPIO.HIGH)
-    start = time.time()
-    while not GPIO.input(pinY):
-        pass
-    charge_time = time.time() - start
-    GPIO.setup(pinA, GPIO.IN)
-    GPIO.setup(pinY, GPIO.OUT, initial=GPIO.LOW)
-    
-    was_under_pressure = under_pressure
-    under_pressure = charge_time < threshold
-    
-    if was_under_pressure and not under_pressure:
-        jump()
+    def read(self):
+        GPIO.setup(pinY, GPIO.IN)
+        GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.HIGH)
+        start = time.time()
+        while not GPIO.input(pinY):
+            pass
+        charge_time = time.time() - start
+        GPIO.setup(self.pin, GPIO.IN)
+        GPIO.setup(pinY, GPIO.OUT, initial=GPIO.LOW)
+        #print('DEBUG charge_time = ', charge_time)
+
+        was_under_pressure = self.under_pressure
+        self.under_pressure = charge_time < self.threshold
+
+        if was_under_pressure and not self.under_pressure:
+            jump()
+
+all_pads = [Pad(26), Pad(6), Pad(5), Pad(22), Pad(27)]
+
+def readPads(pads):
+    pads[0].read()
+    for pad in pads[1:]:
+        pygame.time.delay(2)
+        pad.read()
 
 def leave():
     ev = pygame.event.Event(pygame.USEREVENT+1)
@@ -238,8 +250,7 @@ def showWelcomeAnimation():
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
-
-        readPad()
+        readPads(all_pads)
 
 
 def mainGame(movementInfo):
@@ -297,7 +308,7 @@ def mainGame(movementInfo):
         # check for crash here
         crashTest = checkCrash({'x': playerx, 'y': playery, 'index': playerIndex},
                                upperPipes, lowerPipes)
-        if crashTest[0]:
+        if crashTest[0] and not noCrash:
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
@@ -375,10 +386,8 @@ def mainGame(movementInfo):
         SCREEN.blit(playerSurface, (playerx, playery))
 
         pygame.display.update()
-        
         FPSCLOCK.tick(FPS)
-
-        readPad()
+        readPads(all_pads)
         
 
 
@@ -442,8 +451,7 @@ def showGameOverScreen(crashInfo):
         SCREEN.blit(IMAGES['gameover'], (50, 180))
 
         FPSCLOCK.tick(FPS)
-
-        readPad()
+        readPads(all_pads)
         pygame.display.update()
 
 
