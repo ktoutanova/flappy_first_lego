@@ -3,6 +3,8 @@ import random
 import sys
 
 import pygame
+
+
 from pygame.locals import *
 
 import RPi.GPIO as GPIO
@@ -16,15 +18,22 @@ def jump():
 noCrash = True
 
 pinY = 16
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(pinY,GPIO.OUT, initial=GPIO.LOW)
 
+
+
+
+chord_names = ['Ab-maj', 'F-min', 'C-min', 'Db-maj', 'Eb-maj']
+
 class Pad:
-    def __init__(self, pin, threshold=0.0005):
+    def __init__(self, pin, note, threshold=0.0005):
         self.pin = pin
         self.threshold = threshold
         self.under_pressure = False
         GPIO.setup(pin,GPIO.IN)
+        self.note = note
 
     def read(self):
         GPIO.setup(pinY, GPIO.IN)
@@ -42,8 +51,9 @@ class Pad:
 
         if was_under_pressure and not self.under_pressure:
             jump()
+            self.note.play()
 
-all_pads = [Pad(26), Pad(6), Pad(5), Pad(22), Pad(27)]
+
 
 def readPads(pads):
     pads[0].read()
@@ -53,7 +63,7 @@ def readPads(pads):
 
 def leave():
     ev = pygame.event.Event(pygame.USEREVENT+1)
-    pygame.event.post(ev)
+    pygameall_pads.event.post(ev)
 
 #jump_button = Button(25)
 #jump_button.when_pressed = jump
@@ -101,6 +111,7 @@ BACKGROUNDS_LIST = (
 )
 
 # list of pipes
+
 PIPES_LIST = (
     'assets/sprites/pipe-green.png',
     'assets/sprites/pipe-red.png',
@@ -114,11 +125,12 @@ except NameError:
 
 
 def main():
+
     global SCREEN, FPSCLOCK
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
     SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
-    pygame.display.set_caption('Flappy Bird')
+    pygame.display.set_caption('Musical Bird')
 
     # numbers sprites for score display
     IMAGES['numbers'] = (
@@ -137,7 +149,7 @@ def main():
     # game over sprite
     IMAGES['gameover'] = pygame.image.load('assets/sprites/gameover.png').convert_alpha()
     # message sprite for welcome screen
-    IMAGES['message'] = pygame.image.load('assets/sprites/message.png').convert_alpha()
+    IMAGES['message'] = pygame.image.load('assets/sprites/FutureMakersMessage.png').convert_alpha()
     # base (ground) sprite
 
     
@@ -157,6 +169,17 @@ def main():
     SOUNDS['swoosh'] = pygame.mixer.Sound('assets/audio/swoosh' + soundExt)
     SOUNDS['wing']   = pygame.mixer.Sound('assets/audio/wing' + soundExt)
 
+    global CHORDS, all_pads
+    CHORDS = [pygame.mixer.Sound('assets/audio/%s.wav' % name)
+              for name in chord_names]
+    all_pads = [
+        Pad(26, CHORDS[0]),
+        Pad(6, CHORDS[1]),
+        Pad(5, CHORDS[2]),
+        Pad(22, CHORDS[3]),
+        Pad(27, CHORDS[4]),
+    ]
+    
     while True:
         # select random background sprites
         randBg = random.randint(0, len(BACKGROUNDS_LIST) - 1)
@@ -245,7 +268,7 @@ def showWelcomeAnimation():
         SCREEN.blit(IMAGES['background'], (0,0))
         SCREEN.blit(IMAGES['player'][playerIndex],
                     (playerx, playery + playerShmVals['val']))
-        SCREEN.blit(IMAGES['message'], (messagex, messagey))
+        SCREEN.blit(IMAGES['message'], (messagex, messagey-40))
         SCREEN.blit(IMAGES['base'], (basex, BASEY))
 
         pygame.display.update()
