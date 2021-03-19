@@ -25,7 +25,7 @@ How-to (as tested on Raspberry Pi)
 
    ```bash
    $ pipenv install
-   $ pipenv run python flappy.py
+   $ pipenv run python flappy2.py
    ```
 
 More instructions on how to set up the hardware to the pressure pads will be coming soon.
